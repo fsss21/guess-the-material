@@ -64,8 +64,121 @@ if (process.pkg) {
   distPath = path.join(__dirname, 'dist');
 }
 
+// Middleware для парсинга JSON
+app.use(express.json());
+
 // Обслуживание статических файлов из папки dist
 app.use(express.static(distPath));
+
+// Функция для получения пути к materials.json
+function getMaterialsPath() {
+  const materialsPath = path.join(distPath, 'materials.json');
+  // Если файл не найден в dist, пробуем в public (для разработки)
+  if (!existsSync(materialsPath)) {
+    const publicPath = path.join(__dirname, 'public', 'materials.json');
+    if (existsSync(publicPath)) {
+      return publicPath;
+    }
+  }
+  return materialsPath;
+}
+
+// API endpoints для работы с материалами
+app.get('/api/materials', (req, res) => {
+  try {
+    const materialsPath = getMaterialsPath();
+    if (!existsSync(materialsPath)) {
+      return res.json([]);
+    }
+    const data = fs.readFileSync(materialsPath, 'utf8');
+    const materials = JSON.parse(data);
+    res.json(materials);
+  } catch (error) {
+    console.error('Error reading materials:', error);
+    res.status(500).json({ error: 'Не удалось загрузить материалы' });
+  }
+});
+
+app.post('/api/materials', (req, res) => {
+  try {
+    const materialsPath = getMaterialsPath();
+    let materials = [];
+    
+    // Читаем существующие материалы
+    if (existsSync(materialsPath)) {
+      const data = fs.readFileSync(materialsPath, 'utf8');
+      materials = JSON.parse(data);
+    }
+    
+    // Добавляем новый материал
+    const newMaterial = {
+      id: Math.max(...materials.map(m => m.id || 0), 0) + 1,
+      ...req.body
+    };
+    materials.push(newMaterial);
+    
+    // Сохраняем в файл
+    fs.writeFileSync(materialsPath, JSON.stringify(materials, null, 2), 'utf8');
+    
+    res.json(newMaterial);
+  } catch (error) {
+    console.error('Error creating material:', error);
+    res.status(500).json({ error: 'Не удалось создать материал' });
+  }
+});
+
+app.put('/api/materials/:id', (req, res) => {
+  try {
+    const materialsPath = getMaterialsPath();
+    if (!existsSync(materialsPath)) {
+      return res.status(404).json({ error: 'Файл материалов не найден' });
+    }
+    
+    const materials = JSON.parse(fs.readFileSync(materialsPath, 'utf8'));
+    const id = parseInt(req.params.id);
+    const index = materials.findIndex(m => m.id === id);
+    
+    if (index === -1) {
+      return res.status(404).json({ error: 'Материал не найден' });
+    }
+    
+    // Обновляем материал
+    materials[index] = { ...materials[index], ...req.body, id };
+    
+    // Сохраняем в файл
+    fs.writeFileSync(materialsPath, JSON.stringify(materials, null, 2), 'utf8');
+    
+    res.json(materials[index]);
+  } catch (error) {
+    console.error('Error updating material:', error);
+    res.status(500).json({ error: 'Не удалось обновить материал' });
+  }
+});
+
+app.delete('/api/materials/:id', (req, res) => {
+  try {
+    const materialsPath = getMaterialsPath();
+    if (!existsSync(materialsPath)) {
+      return res.status(404).json({ error: 'Файл материалов не найден' });
+    }
+    
+    const materials = JSON.parse(fs.readFileSync(materialsPath, 'utf8'));
+    const id = parseInt(req.params.id);
+    const filteredMaterials = materials.filter(m => m.id !== id);
+    
+    if (filteredMaterials.length === materials.length) {
+      return res.status(404).json({ error: 'Материал не найден' });
+    }
+    
+    // Сохраняем в файл
+    fs.writeFileSync(materialsPath, JSON.stringify(filteredMaterials, null, 2), 'utf8');
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting material:', error);
+    res.status(500).json({ error: 'Не удалось удалить материал' });
+  }
+});
 
 // Для всех остальных маршрутов возвращаем index.html (SPA routing)
 app.get('*', (req, res) => {

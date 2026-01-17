@@ -47,6 +47,10 @@
   font-size: clamp(18px, 4vw, 24px);
   opacity: 0.8;
   transition: opacity 0.2s ease;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
 
   &:hover {
     opacity: 1;
@@ -173,7 +177,8 @@
   font-size: clamp(16px, 3.5vw, 20px);
 
   input,
-  textarea {
+  textarea,
+  select {
     border-radius: 18px;
     border: none;
     padding: 1.5vh 2vw;
@@ -185,6 +190,15 @@
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
+  }
+
+  select {
+    cursor: pointer;
+  }
+
+  select option {
+    background: #1a1a1a;
+    color: #ffffff;
   }
 
   textarea {

@@ -1,18 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import styles from './AdminPage.module.scss';
-import { createRock, getRocks, updateRock } from '../../api/rocksApi';
-import ModelViewer from '../view/Model/ModelViewer';
+import styles from './AdminPage.module.css';
 
 const emptyForm = {
   name: '',
+  material: '',
   image: '',
   description: '',
-  modelPath: '',
+  category: '',
 };
 
-const AdminPage = () => {
-  const [rocks, setRocks] = useState([]);
+const AdminPage = ({ onClose }) => {
+  const [materials, setMaterials] = useState([]);
   const [formValues, setFormValues] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -21,22 +19,34 @@ const AdminPage = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const loadRocks = useCallback(async () => {
+  const MATERIAL_OPTIONS = [
+    'Керамика/глина',
+    'Металл (железо/медь)',
+    'Дерево',
+    'Камень/кирпич',
+    'Стекло'
+  ];
+
+  const loadMaterials = useCallback(async () => {
     setLoading(true);
     setListError('');
     try {
-      const data = await getRocks();
-      setRocks(Array.isArray(data) ? data : []);
+      const response = await fetch('/api/materials');
+      if (!response.ok) {
+        throw new Error('Не удалось загрузить материалы');
+      }
+      const data = await response.json();
+      setMaterials(Array.isArray(data) ? data : []);
     } catch (err) {
-      setListError(err.message || 'Не удалось получить список камней');
+      setListError(err.message || 'Не удалось получить список материалов');
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadRocks();
-  }, [loadRocks]);
+    loadMaterials();
+  }, [loadMaterials]);
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
@@ -46,14 +56,15 @@ const AdminPage = () => {
     }));
   };
 
-  const startEdit = (rock) => {
-    setEditingId(rock.id);
+  const startEdit = (material) => {
+    setEditingId(material.id);
     setFormValues({
-      id: rock.id || '',
-      name: rock.name || '',
-      image: rock.image || '',
-      description: rock.description || '',
-      modelPath: rock.modelPath || '',
+      id: material.id || '',
+      name: material.name || '',
+      material: material.material || '',
+      image: material.image || '',
+      description: material.description || '',
+      category: material.category || '',
     });
     setFormError('');
     setSuccessMessage('');
@@ -74,38 +85,62 @@ const AdminPage = () => {
 
     const payload = {
       name: formValues.name.trim(),
+      material: formValues.material.trim(),
       image: formValues.image.trim(),
       description: formValues.description.trim(),
-      modelPath: formValues.modelPath.trim(),
+      category: formValues.category.trim(),
     };
 
-    if (!payload.name || !payload.description) {
-      setFormError('Название и описание обязательны');
+    if (!payload.name || !payload.material || !payload.description) {
+      setFormError('Название, материал и описание обязательны');
       setSaving(false);
       return;
     }
 
     try {
+      let response;
       if (editingId) {
-        // При редактировании добавляем ID в payload, если он был изменен
-        if (formValues.id) {
-          const newId = parseInt(formValues.id);
-          if (isNaN(newId) || newId < 1) {
-            setFormError('ID должен быть положительным числом');
-            setSaving(false);
-            return;
-          }
-          if (newId !== editingId) {
-            payload.id = newId;
-          }
+        // Обновление существующего материала
+        const updatePayload = { ...payload };
+        if (formValues.id && parseInt(formValues.id) !== editingId) {
+          updatePayload.id = parseInt(formValues.id);
         }
-        await updateRock(editingId, payload);
-        setSuccessMessage('Камень обновлён');
+        response = await fetch(`/api/materials/${editingId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(updatePayload),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Не удалось обновить материал');
+        }
+        
+        const updatedMaterial = await response.json();
+        setMaterials(materials.map(m => m.id === editingId ? updatedMaterial : m));
+        setSuccessMessage('Материал обновлён');
       } else {
-        await createRock(payload);
-        setSuccessMessage('Камень добавлен');
+        // Создание нового материала
+        response = await fetch('/api/materials', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Не удалось создать материал');
+        }
+        
+        const newMaterial = await response.json();
+        setMaterials([...materials, newMaterial]);
+        setSuccessMessage('Материал добавлен');
       }
-      await loadRocks();
+      
       resetForm();
     } catch (err) {
       setFormError(err.message || 'Не удалось сохранить изменения');
@@ -114,54 +149,130 @@ const AdminPage = () => {
     }
   };
 
+  const handleDelete = async (id) => {
+    if (!window.confirm('Вы уверены, что хотите удалить этот материал?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/materials/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Не удалось удалить материал');
+      }
+
+      setMaterials(materials.filter(m => m.id !== id));
+      setSuccessMessage('Материал удалён');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      setFormError(err.message || 'Не удалось удалить материал');
+      setTimeout(() => setFormError(''), 5000);
+    }
+  };
+
   return (
     <div className={styles.wrapper}>
       <header className={styles.header}>
         <div>
           <p className={styles.badge}>Админ-панель</p>
-          <h1>Коллекция камней</h1>
+          <h1>Управление материалами</h1>
         </div>
-        <Link to='/' className={styles.homeLink}>
-          ← Вернуться в галерею
-        </Link>
+        <button onClick={onClose} className={styles.homeLink}>
+          ← Вернуться к игре
+        </button>
       </header>
 
       <div className={styles.layout}>
         <section className={styles.formSection}>
-          <h2>{editingId ? 'Редактировать камень' : 'Добавить новый камень'}</h2>
+          <h2>{editingId ? 'Редактировать материал' : 'Добавить новый материал'}</h2>
           <form className={styles.form} onSubmit={handleSubmit}>
             {editingId && (
               <label className={styles.label}>
                 ID
-                <input type='number' name='id' value={formValues.id} onChange={handleInputChange} placeholder='1' min='1' />
+                <input 
+                  type='number' 
+                  name='id' 
+                  value={formValues.id} 
+                  onChange={handleInputChange} 
+                  placeholder='1' 
+                  min='1' 
+                />
               </label>
             )}
 
             <label className={styles.label}>
               Название
-              <input type='text' name='name' value={formValues.name} onChange={handleInputChange} placeholder='Например, Аметист' />
+              <input 
+                type='text' 
+                name='name' 
+                value={formValues.name} 
+                onChange={handleInputChange} 
+                placeholder='Например, Изразцы' 
+              />
+            </label>
+
+            <label className={styles.label}>
+              Материал
+              <select 
+                name='material' 
+                value={formValues.material} 
+                onChange={handleInputChange}
+              >
+                <option value=''>Выберите материал</option>
+                {MATERIAL_OPTIONS.map(option => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
             </label>
 
             <label className={styles.label}>
               Ссылка на изображение
-              <input type='text' name='image' value={formValues.image} onChange={handleInputChange} placeholder='/images/rock1.png' />
+              <input 
+                type='text' 
+                name='image' 
+                value={formValues.image} 
+                onChange={handleInputChange} 
+                placeholder='https://via.placeholder.com/600x400' 
+              />
             </label>
 
             <label className={styles.label}>
               Описание
-              <textarea name='description' value={formValues.description} onChange={handleInputChange} rows={6} placeholder='Краткое описание минерала...' />
+              <textarea 
+                name='description' 
+                value={formValues.description} 
+                onChange={handleInputChange} 
+                rows={6} 
+                placeholder='Описание материала...' 
+              />
             </label>
 
             <label className={styles.label}>
-              Путь к 3D модели (опционально)
-              <input type='text' name='modelPath' value={formValues.modelPath} onChange={handleInputChange} placeholder='/models/amethyst.glb' />
+              Категория
+              <input 
+                type='text' 
+                name='category' 
+                value={formValues.category} 
+                onChange={handleInputChange} 
+                placeholder='Например, печное отопление XVIII-XIX вв.' 
+              />
             </label>
 
-            {(formValues.modelPath?.trim() || formValues.image?.trim()) && (
+            {formValues.image?.trim() && (
               <div className={styles.preview}>
-                <h3 className={styles.previewTitle}>Превью</h3>
+                <h3 className={styles.previewTitle}>Превью изображения</h3>
                 <div className={styles.previewContainer}>
-                  <ModelViewer modelPath={formValues.modelPath?.trim() || null} imagePath={formValues.image?.trim() || null} />
+                  <img 
+                    src={formValues.image.trim()} 
+                    alt={formValues.name || 'Preview'} 
+                    style={{ maxWidth: '100%', maxHeight: '400px', objectFit: 'contain' }}
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
+                  />
                 </div>
               </div>
             )}
@@ -183,8 +294,8 @@ const AdminPage = () => {
         </section>
         <section className={styles.listSection}>
           <div className={styles.sectionHeader}>
-            <h2>Все камни</h2>
-            <span>{rocks.length}</span>
+            <h2>Все материалы</h2>
+            <span>{materials.length}</span>
           </div>
 
           {loading && <p className={styles.status}>Загружаем...</p>}
@@ -192,19 +303,38 @@ const AdminPage = () => {
 
           {!loading && !listError && (
             <ul className={styles.list}>
-              {rocks.map((rock) => (
-                <li key={rock.id} className={styles.listItem}>
+              {materials.map((material) => (
+                <li key={material.id} className={styles.listItem}>
                   <div>
-                    <p className={styles.listItemTitle}>{rock.name || 'Без названия'}</p>
-                    {rock.image && <p className={styles.listItemMeta}>{rock.image}</p>}
+                    <p className={styles.listItemTitle}>{material.name || 'Без названия'}</p>
+                    <p className={styles.listItemMeta}>Материал: {material.material}</p>
+                    {material.image && (
+                      <p className={styles.listItemMeta} style={{ fontSize: '12px', opacity: 0.6 }}>
+                        {material.image}
+                      </p>
+                    )}
                   </div>
-                  <button type='button' className={styles.editButton} onClick={() => startEdit(rock)}>
-                    Редактировать
-                  </button>
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    <button 
+                      type='button' 
+                      className={styles.editButton} 
+                      onClick={() => startEdit(material)}
+                    >
+                      Редактировать
+                    </button>
+                    <button 
+                      type='button' 
+                      className={styles.editButton} 
+                      onClick={() => handleDelete(material.id)}
+                      style={{ background: 'rgba(255, 0, 0, 0.2)', borderColor: 'rgba(255, 0, 0, 0.5)' }}
+                    >
+                      Удалить
+                    </button>
+                  </div>
                 </li>
               ))}
 
-              {rocks.length === 0 && <p className={styles.status}>Список пуст</p>}
+              {materials.length === 0 && <p className={styles.status}>Список пуст</p>}
             </ul>
           )}
         </section>

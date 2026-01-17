@@ -1,0 +1,47 @@
+.listSection {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 32px;
+  padding: 4vh 4vw;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+  width: 100%;
+  max-width: 100%;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding-bottom: 2vh;
+}
+
+.sectionHeader h2 {
+  font-size: clamp(24px, 5vw, 36px);
+}
+
+.sectionHeader span {
+  font-size: clamp(24px, 5vw, 32px);
+  font-weight: 600;
+}
+
+.status {
+  margin-top: 3vh;
+  font-size: clamp(18px, 4vw, 24px);
+  opacity: 0.9;
+}
+
+.error {
+  margin-top: 2vh;
+  color: #ffb3b3;
+  font-size: clamp(16px, 3.5vw, 20px);
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 3vh 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2vh;
+}

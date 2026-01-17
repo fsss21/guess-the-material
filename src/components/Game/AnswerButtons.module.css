@@ -1,0 +1,58 @@
+.answersContainer {
+  height: 50vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 20px;
+  padding: 30px;
+  background: white;
+}
+
+.answerButton {
+  font-size: 24px;
+  font-weight: 600;
+  padding: 30px;
+  border: 3px solid #e0e0e0;
+  border-radius: 16px;
+  background: white;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.answerButton:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  border-color: #667eea;
+}
+
+.answerButton:disabled {
+  cursor: not-allowed;
+}
+
+.answerCorrect {
+  border-color: #4caf50;
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.answerIncorrect {
+  border-color: #f44336;
+  background: #ffebee;
+  color: #c62828;
+}
+
+@media (max-width: 768px) {
+  .answersContainer {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(4, 1fr);
+    gap: 15px;
+    padding: 20px;
+  }
+
+  .answerButton {
+    font-size: 18px;
+    padding: 20px;
+  }
+}

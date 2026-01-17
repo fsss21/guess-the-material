@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import Game from './components/Game'
-import AdminPage from './components/AdminPage'
+import Game from './components/Game/Game'
+import AdminPage from './components/Admin/AdminPage'
 import styles from './App.module.css'
 
 function App() {

@@ -19,11 +19,18 @@ function GameScreen({
       </div>
       
       <div className={styles.imageContainer}>
-        <img 
-          src={currentItem?.image} 
-          alt={currentItem?.name}
-          className={styles.itemImage}
-        />
+        {currentItem?.image ? (
+          <img 
+            src={currentItem.image} 
+            alt={currentItem.name || 'Изображение находки'}
+            className={styles.itemImage}
+            onError={(e) => {
+              e.target.style.display = 'none'
+            }}
+          />
+        ) : (
+          <div className={styles.imagePlaceholder}>Изображение не загружено</div>
+        )}
       </div>
 
       <AnswerButtons

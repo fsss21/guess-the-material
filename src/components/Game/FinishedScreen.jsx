@@ -2,7 +2,7 @@ import React from 'react'
 import styles from './FinishedScreen.module.css'
 import { MAX_QUESTIONS } from '../../constants/gameConstants'
 
-function FinishedScreen({ score, onRestart }) {
+function FinishedScreen({ score, onRestart, onShowCatalog }) {
   const getScoreMessage = () => {
     const percentage = (score / MAX_QUESTIONS) * 100
     if (percentage >= 80) return 'Отлично! Вы разбираетесь в исторических материалах'
@@ -24,7 +24,10 @@ function FinishedScreen({ score, onRestart }) {
         <button className={styles.finishedButton} onClick={onRestart}>
           Играть снова
         </button>
-        <button className={`${styles.finishedButton} ${styles.finishedButtonSecondary}`}>
+        <button 
+          className={`${styles.finishedButton} ${styles.finishedButtonSecondary}`}
+          onClick={onShowCatalog}
+        >
           Перейти к каталогу находок
         </button>
       </div>

@@ -3,12 +3,14 @@ import LoadingScreen from './LoadingScreen'
 import StartScreen from './StartScreen'
 import GameScreen from './GameScreen'
 import FinishedScreen from './FinishedScreen'
+import CatalogScreen from './CatalogScreen'
 import { MAX_QUESTIONS } from '../../constants/gameConstants'
 
 function Game() {
-  const [gameState, setGameState] = useState('start') // start, playing, result, finished
+  const [gameState, setGameState] = useState('start') // start, playing, result, finished, catalog
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [currentItem, setCurrentItem] = useState(null)
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState(null)
@@ -20,8 +22,16 @@ function Game() {
   useEffect(() => {
     // Загружаем данные из JSON файла
     fetch('/materials.json')
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        return response.json()
+      })
       .then(data => {
+        if (!Array.isArray(data) || data.length === 0) {
+          throw new Error('Данные не найдены или пусты')
+        }
         setItems(data)
         // Перемешиваем предметы для случайного порядка
         const shuffled = [...data].sort(() => Math.random() - 0.5)
@@ -30,6 +40,7 @@ function Game() {
       })
       .catch(error => {
         console.error('Ошибка загрузки данных:', error)
+        setError('Не удалось загрузить данные. Пожалуйста, обновите страницу.')
         setLoading(false)
       })
   }, [])
@@ -73,7 +84,7 @@ function Game() {
   }
 
   const handleAnswer = (answer) => {
-    if (selectedAnswer) return // Уже отвечали
+    if (selectedAnswer || !currentItem) return // Уже отвечали или нет предмета
 
     const correct = answer === currentItem.material
     setSelectedAnswer(answer)
@@ -120,11 +131,85 @@ function Game() {
     return <LoadingScreen />
   }
 
+  if (error) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px 20px',
+        color: 'white',
+        textAlign: 'center'
+      }}>
+        <h2 style={{ fontSize: '32px', marginBottom: '20px' }}>⚠️ Ошибка загрузки</h2>
+        <p style={{ fontSize: '18px', marginBottom: '30px' }}>{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          style={{
+            padding: '12px 24px',
+            fontSize: '18px',
+            fontWeight: '600',
+            border: '2px solid white',
+            borderRadius: '12px',
+            cursor: 'pointer',
+            background: 'white',
+            color: '#667eea',
+            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)'
+          }}
+        >
+          Обновить страницу
+        </button>
+      </div>
+    )
+  }
+
+  if (items.length === 0) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px 20px',
+        color: 'white',
+        textAlign: 'center'
+      }}>
+        <h2 style={{ fontSize: '32px', marginBottom: '20px' }}>📦 Нет данных</h2>
+        <p style={{ fontSize: '18px', marginBottom: '30px' }}>
+          Материалы не найдены. Пожалуйста, проверьте файл materials.json
+        </p>
+        <button
+          onClick={() => window.location.reload()}
+          style={{
+            padding: '12px 24px',
+            fontSize: '18px',
+            fontWeight: '600',
+            border: '2px solid white',
+            borderRadius: '12px',
+            cursor: 'pointer',
+            background: 'white',
+            color: '#667eea',
+            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)'
+          }}
+        >
+          Обновить страницу
+        </button>
+      </div>
+    )
+  }
+
   if (gameState === 'start') {
     return <StartScreen onStart={handleStart} />
   }
 
   if (gameState === 'playing' || gameState === 'result') {
+    if (!currentItem) {
+      // Если нет текущего предмета, возвращаемся к началу
+      return <StartScreen onStart={handleStart} />
+    }
     return (
       <GameScreen
         currentQuestion={currentQuestion}
@@ -138,7 +223,22 @@ function Game() {
   }
 
   if (gameState === 'finished') {
-    return <FinishedScreen score={score} onRestart={handleRestart} />
+    return (
+      <FinishedScreen 
+        score={score} 
+        onRestart={handleRestart}
+        onShowCatalog={() => setGameState('catalog')}
+      />
+    )
+  }
+
+  if (gameState === 'catalog') {
+    return (
+      <CatalogScreen 
+        onBack={() => setGameState('start')}
+        onBackToResults={() => setGameState('finished')}
+      />
+    )
   }
 
   return null

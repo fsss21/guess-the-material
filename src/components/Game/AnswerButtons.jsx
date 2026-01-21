@@ -5,7 +5,7 @@ import { ANSWER_OPTIONS } from '../../constants/gameConstants'
 function AnswerButtons({ currentItem, selectedAnswer, isCorrect, showResult, onAnswer }) {
   return (
     <div className={styles.answersContainer}>
-      {ANSWER_OPTIONS.map((option, index) => {
+      {ANSWER_OPTIONS.map((option) => {
         const isSelected = selectedAnswer === option
         const isCorrectAnswer = option === currentItem?.material
         let buttonClass = styles.answerButton
@@ -20,7 +20,7 @@ function AnswerButtons({ currentItem, selectedAnswer, isCorrect, showResult, onA
 
         return (
           <button
-            key={index}
+            key={option}
             className={buttonClass}
             onClick={() => onAnswer(option)}
             disabled={showResult}

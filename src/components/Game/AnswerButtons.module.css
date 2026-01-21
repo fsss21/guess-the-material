@@ -6,6 +6,10 @@
   gap: 20px;
   padding: 30px;
   background: white;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .answerButton {
@@ -19,6 +23,11 @@
   cursor: pointer;
   transition: all 0.3s ease;
   text-align: center;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .answerButton:hover:not(:disabled) {

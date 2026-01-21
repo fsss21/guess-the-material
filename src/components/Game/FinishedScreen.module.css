@@ -6,6 +6,10 @@
   justify-content: center;
   text-align: center;
   padding: 40px 20px;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .finishedTitle {
